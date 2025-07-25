@@ -1,0 +1,31 @@
+http://localhost:8000
+
+event on 
+register 
+
+message send btn input field register
+
+register json data
+{
+    "userId":5
+}
+
+privateMessage send btn input field privateMessage
+
+json data
+
+{
+  "fromUserId": 2,
+  "toUserId":1,
+  "ticketId": 1,
+  "message": "yasir hlo",
+  "type": "text"
+}
+
+id register 2 and 5
+
+2 send and 5 received and 5 send and 2 recieved
+
+
+message send only id register 
+
