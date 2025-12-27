@@ -1,32 +1,8 @@
-// src/config/db.js
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+// src/config/db.js (DEPRECATED)
+// This file previously created a MySQL pool. The project has been migrated to MongoDB.
+// If any code still imports from here, it'll receive an explanatory error to avoid silent failures.
 
-dotenv.config();
-console.log(
-  'Connecting to MySQL database with the following credentials:',
-  process.env.HOST_NAME, 
-  process.env.USER, 
-  process.env.PASS, 
-  process.env.DATABASE_NAME
-);  
-
-
-export const pool = mysql.createPool({
-  host: process.env.HOST_NAME,
-  user: process.env.USER,
-  password: process.env.PASS,
-  database: process.env.DATABASE_NAME,
-  port: 3306,
-  queueLimit: 0,
-});
+export const pool = null;
 export const getConnection = async () => {
-  try {
-    const connection = await pool.getConnection();
-    console.log('Database connection successfully.');
-    return connection;
-  } catch (error) {
-    console.error('Error connecting to the database:', error);
-    throw error;
-  }
+  throw new Error('MySQL config is deprecated. Use src/config/mongo.js and Mongoose instead.');
 };

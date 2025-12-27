@@ -4,28 +4,60 @@ Socket.IO–based Node.js backend implementing role-based access control (RBAC) 
 =======
 # Socket1
 
-A Node.js project with socket functionality.
+A Node.js real-time application built with Socket.IO and MongoDB (Mongoose), supporting persistent messaging and role-based users.
+Originally implemented with MySQL, this project has now been fully migrated to MongoDB.
+
+🚀 Features
+
+Real-time communication using Socket.IO
+
+MongoDB integration via Mongoose
+
+Persistent message storage
+
+User management with unique usernames
+
+Environment-based configuration
+
+Development-friendly setup with hot reload
 
 ## Setup
 
 1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Copy `.env` and set your environment variables.
-3. Start the server:
-   ```bash
-   npm start
-   ```
-4. For development with auto-reload:
-   ```bash
-   npm run dev
-   ```
+   yarn install
 
-## Project Structure
-- `src/` - Source code
-- `Server.js` - Main server file
-- `db.js` - Database connection
-- `function.js` - Utility functions
-- `save_message.js` - Message saving logic 
->>>>>>> 5997cc2 (first commit)
+2. Copy `.env` and set your environment variables.
+
+3. Start the server:
+   yarn dev
+
+4. For development with auto-reload:
+   yarn run dev
+
+📁 Project Structure
+
+Socket1/
+│
+├── src/
+│   ├── config/
+│   │   └── db.js              # MongoDB connection logic
+│   │
+│   ├── models/
+│   │   ├── User.js            # User schema (username, email, role)
+│   │   └── Message.js         # Message schema
+│   │
+│   ├── sockets/
+│   │   └── socketHandler.js   # Socket.IO event handlers
+│   │
+│   ├── utils/
+│   │   └── function.js        # Shared utility/helper functions
+│   │
+│   ├── services/
+│   │   └── save_message.js    # Message persistence logic
+│   │
+│   └── server.js              # Main server entry point
+│
+├── .env                       # Environment variables
+├── package.json
+├── yarn.lock
+└── README.md

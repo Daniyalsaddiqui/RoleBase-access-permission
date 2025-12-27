@@ -1,35 +1,21 @@
-// src/setup/createTables.js
-import { pool } from '../config/db.js';
+// src/dbTable/tables.js
+import { findAdminUser, createUser } from '../model/User.js';
 
-export const createTables = async () => {
-    try {
-        await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(100) NOT NULL UNIQUE,
-        email VARCHAR(100) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) DEFAULT 'user',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+export const createInitialData = async () => {
+  try {
+    const admin = await findAdminUser();
+    if (!admin) {
+      const username = process.env.ADMIN_USERNAME || 'admin';
+      const email = process.env.ADMIN_EMAIL || 'admin@example.com';
+      const password = process.env.ADMIN_PASSWORD || 'admin123';
 
-        await pool.query(`
-       CREATE TABLE IF NOT EXISTS messages (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        from_user_id INT,
-        to_user_id INT,
-        message TEXT,
-        type ENUM('text', 'image', 'file') DEFAULT 'text',
-        file_name VARCHAR(255),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (from_user_id) REFERENCES users(id),
-        FOREIGN KEY (to_user_id) REFERENCES users(id)
-    );
-
-`);
-    } catch (err) {
-        console.error('❌ Failed to create tables:', err.message);
+      const newAdmin = await createUser({ username, email, password, role: 'admin' });
+      console.log('✅ Admin user created:', newAdmin.email);
+    } else {
+      console.log('✅ Admin user already exists:', admin.email);
     }
+  } catch (err) {
+    console.error('❌ Failed to setup initial data:', err.message);
+  }
 };
 

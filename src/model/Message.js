@@ -1,55 +1,76 @@
-import { pool } from '../config/db.js';
+import mongoose from 'mongoose';
 
-// Save a message
+const MessageSchema = new mongoose.Schema({
+  fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  toUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  message: { type: String, required: true },
+  type: { type: String, enum: ['text', 'image', 'file'], default: 'text' },
+  fileName: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const Message = mongoose.models.Message || mongoose.model('Message', MessageSchema);
+
+const mapMsg = (doc) => {
+  if (!doc) return null;
+  return {
+    id: doc._id.toString(),
+    fromUserId: doc.fromUserId?.toString?.() || doc.fromUserId,
+    toUserId: doc.toUserId?.toString?.() || doc.toUserId,
+    message: doc.message,
+    type: doc.type,
+    fileName: doc.fileName,
+    createdAt: doc.createdAt,
+    // legacy snake_case fields for backward compatibility
+    from_user_id: doc.fromUserId?.toString?.() || doc.fromUserId,
+    to_user_id: doc.toUserId?.toString?.() || doc.toUserId,
+    created_at: doc.createdAt,
+    file_name: doc.fileName
+  };
+};
+
 export const createMessage = async ({ fromUserId, toUserId, message, type = 'text', fileName = null }) => {
-  const [result] = await pool.execute(
-    `INSERT INTO messages (from_user_id, to_user_id, message, type, file_name)
-     VALUES (?, ?, ?, ?, ?)`,
-    [fromUserId, toUserId, message, type, fileName]
-  );
-
-  const insertedId = result.insertId;
-
-  const [rows] = await pool.execute(`SELECT * FROM messages WHERE id = ?`, [insertedId]);
-  return rows[0];
+  const msg = new Message({
+    fromUserId,
+    toUserId,
+    message,
+    type,
+    fileName
+  });
+  await msg.save();
+  return mapMsg(msg.toObject());
 };
 
-// Get conversation between two users (admin + user)
 export const getConversation = async (userA, userB) => {
-  const [rows] = await pool.execute(
-    `SELECT * FROM messages
-     WHERE (from_user_id = ? AND to_user_id = ?)
-        OR (from_user_id = ? AND to_user_id = ?)
-     ORDER BY created_at ASC`,
-    [userA, userB, userB, userA]
-  );
-  return rows;
+  const conversation = await Message.find({
+    $or: [
+      { fromUserId: userA, toUserId: userB },
+      { fromUserId: userB, toUserId: userA }
+    ]
+  }).sort({ createdAt: 1 }).lean();
+
+  return conversation.map(mapMsg);
 };
 
-// Get distinct users who messaged admin
 export const getAllSendersToAdmin = async (adminId) => {
-  const [rows] = await pool.execute(
-    `SELECT DISTINCT from_user_id
-     FROM messages
-     WHERE to_user_id = ?`,
-    [adminId]
-  );
-  return rows.map((row) => row.from_user_id);
+  const senders = await Message.distinct('fromUserId', { toUserId: adminId });
+  return senders.map(s => s.toString());
 };
 
-// Get last message from each user to admin
 export const getLastMessagesToAdmin = async (adminId) => {
-  const [rows] = await pool.execute(
-    `SELECT m.*
-     FROM messages m
-     INNER JOIN (
-       SELECT from_user_id, MAX(created_at) AS last_time
-       FROM messages
-       WHERE to_user_id = ?
-       GROUP BY from_user_id
-     ) sub ON m.from_user_id = sub.from_user_id AND m.created_at = sub.last_time
-     ORDER BY m.created_at DESC`,
-    [adminId]
-  );
-  return rows;
+  // For each fromUserId, get the latest message to admin
+  const latest = await Message.aggregate([
+    { $match: { toUserId: mongoose.Types.ObjectId(adminId) } },
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: '$fromUserId',
+        doc: { $first: '$$ROOT' }
+      }
+    },
+    { $replaceRoot: { newRoot: '$doc' } },
+    { $sort: { createdAt: -1 } }
+  ]);
+
+  return latest.map(mapMsg);
 };

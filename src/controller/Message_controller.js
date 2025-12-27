@@ -1,7 +1,6 @@
 // All other imports stay the same
-import { createMessage, getConversation, getAllSendersToAdmin, getLastMessagesToAdmin } from '../model/Message.js';
+import { createMessage, getConversation, getAllSendersToAdmin, getLastMessagesToAdmin, Message } from '../model/Message.js';
 import { findUserById, findAdminUser } from '../model/User.js';
-import { pool } from '../config/db.js';
 
 // Send a message (user to admin or admin to user)
 export const sendMessage = async (req, res) => {
@@ -83,13 +82,13 @@ export const getUsersForAdmin = async (req, res) => {
 
     const usersWithMessages = await Promise.all(
       lastMessages.map(async (msg) => {
-        const user = await findUserById(msg.from_user_id);
+        const user = await findUserById(msg.fromUserId);
         return {
           userId: user.id,
           username: user.username,
           email: user.email,
           lastMessage: msg.message,
-          lastMessageTime: msg.created_at,
+          lastMessageTime: msg.createdAt,
           unreadCount: 0
         };
       })
@@ -142,14 +141,17 @@ export const getAllUserChatsWithAdmin = async (req, res) => {
       message: 'Admin not found' 
     });
 
-    const [rows] = await pool.execute(
-      `SELECT DISTINCT from_user_id AS user_id FROM messages WHERE to_user_id = ?
-       UNION
-       SELECT DISTINCT to_user_id AS user_id FROM messages WHERE from_user_id = ?`,
-      [admin.id, admin.id]
-    );
+    // Find all distinct user IDs who chatted with admin
+    const sentToAdmin = await getAllSendersToAdmin(admin.id); // users who sent to admin
+    const adminSentTo = await Message.distinct('toUserId', { fromUserId: admin.id });
 
-    const userIds = rows.map(row => row.user_id).filter(id => id !== admin.id);
+    const userIdsSet = new Set([...
+      sentToAdmin.map(s => s.toString()),
+      ...adminSentTo.map(s => s.toString())
+    ]);
+    userIdsSet.delete(admin.id);
+
+    const userIds = Array.from(userIdsSet);
 
     const chatData = await Promise.all(userIds.map(async (userId) => {
       const user = await findUserById(userId);

@@ -5,14 +5,18 @@ import { Server } from 'socket.io';
 import { handleSocketConnection } from './function.js';
 import authRouter from './router/auth.js';
 import messageRouter from './router/message.js';
-import { createTables } from './dbTable/tables.js';
+import { createInitialData } from './dbTable/tables.js';
+import connectDB from './config/mongo.js';
 
 import dotenv from 'dotenv';
 import cors from 'cors';
 
 dotenv.config();
 
-createTables();
+// Connect to MongoDB and ensure initial data
+connectDB()
+  .then(() => createInitialData())
+  .catch((err) => console.error('DB init error:', err));
 
 const app = express();
 const PORT = process.env.PORT || 8080;

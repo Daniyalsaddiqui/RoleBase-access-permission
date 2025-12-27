@@ -8,9 +8,7 @@ import {
   findUserById
 } from '../model/User.js';
 
-import { pool } from '../config/db.js';
 import bcrypt from 'bcrypt';
-import { Result } from 'pg';
 
 // SIGNUP
 export const signup = async (req, res) => {

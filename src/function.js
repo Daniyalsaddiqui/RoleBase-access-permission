@@ -25,15 +25,15 @@ export function handleSocketConnection(socket, io) {
                     userId = data.userId;
                 }
     
-                userId = parseInt(userId);
-                if (isNaN(userId)) throw new Error("Invalid userId");
-    
+                // Keep userId as a string (MongoDB ObjectId)
+                userId = String(userId);
+
                 const user = await findUserById(userId);
                 if (!user) {
                     console.log("❌ Invalid user:", userId);
                     return socket.emit("error", { message: "User not found" });
                 }
-    
+
                 users.set(userId, socket);
                 socket.userId = userId;
     
@@ -55,7 +55,7 @@ export function handleSocketConnection(socket, io) {
                 console.log("❌ Failed to parse JSON:", err);
                 return;
             }
-        }stat
+        }
 
         const fromUserId = socket.userId;
         const { toUserId, message = null, fileName = null, type = 'text' } = data;
@@ -84,7 +84,7 @@ export function handleSocketConnection(socket, io) {
             fileName,
         });
 
-        payload.timestamp = savedMessage?.timestamp || payload.timestamp;
+        payload.timestamp = savedMessage?.createdAt || savedMessage?.created_at || payload.timestamp;
 
         // 📡 Emit to receiver
         const toSocket = users.get(toUserId);
